@@ -20,7 +20,7 @@ bool sphereVsMap(Vec3& pos, float r, const TileMap& map) {
                 float halfTile = S * 0.5f + r;
                 float ox = pos.x - cx;
                 float oz = pos.z - cz;
-                if (std::fabsf(ox) < std::fabsf(oz)) {
+                if (std::fabs(ox) < std::fabs(oz)) {
                     pos.z = cz + (oz < 0 ? -halfTile : halfTile);
                 } else {
                     pos.x = cx + (ox < 0 ? -halfTile : halfTile);
@@ -40,7 +40,7 @@ bool rayVsAABB(Vec3 origin, Vec3 dir, const AABB& box, float& tHit) {
     float bmax[3] = { box.max.x, box.max.y, box.max.z };
 
     for (int i = 0; i < 3; ++i) {
-        if (std::fabsf(ds[i]) < 1e-6f) {
+        if (std::fabs(ds[i]) < 1e-6f) {
             if (os[i] < bmin[i] || os[i] > bmax[i]) return false;
         } else {
             float t1 = (bmin[i] - os[i]) / ds[i];

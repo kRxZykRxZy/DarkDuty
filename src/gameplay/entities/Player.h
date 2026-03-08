@@ -21,6 +21,7 @@ struct Player {
     float fireCooldown     = 0.f;
     bool  isReloading      = false;
     float reloadTimer      = 0.f;
+    float radius           = 0.4f; // collision radius (world units)
 
     void takeDamage(int d) {
         if (invincTimer > 0.f) return;
@@ -31,15 +32,15 @@ struct Player {
     }
 
     void update(float dt) {
-        invincTimer  = std::max(0.f, invincTimer - dt);
-        fireCooldown = std::max(0.f, fireCooldown - dt);
+        invincTimer  = (std::max)(0.f, invincTimer - dt);
+        fireCooldown = (std::max)(0.f, fireCooldown - dt);
         if (isReloading) {
             reloadTimer -= dt;
             if (reloadTimer <= 0.f) isReloading = false;
         }
     }
 
-    void heal(int a) { hp = std::min(maxHp, hp + a); }
+    void heal(int a) { hp = (std::min)(maxHp, hp + a); }
 
     float eyeY()    const { return pos.y + TileScale::EYE_H; }
     Vec3  eyePos()  const { return {pos.x, eyeY(), pos.z}; }

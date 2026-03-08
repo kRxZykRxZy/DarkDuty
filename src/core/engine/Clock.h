@@ -18,7 +18,7 @@ public:
         Uint64 freq  = SDL_GetPerformanceFrequency();
         float  dt    = (float)(now - last_) / (float)freq;
         last_        = now;
-        dt           = std::min(dt, 0.1f);
+        dt           = (std::min)(dt, 0.1f);
         elapsed_    += dt;
         fpsTimer_   += dt;
         ++frameCount_;

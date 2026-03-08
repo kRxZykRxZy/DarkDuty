@@ -1,11 +1,15 @@
 #include "Game.h"
 #include "gameplay/ai/AIController.h"
 #include "gameplay/physics/Movement.h"
+#include "gameplay/weapons/WeaponRegistry.h"
 #include "network/socket/SocketInit.h"
 #include <SDL2/SDL.h>
 #include <cstdio>
 #include <cstring>
 #ifdef _WIN32
+// Suppress deprecated Winsock API warnings; we use the legacy API for
+// simplicity (gethostbyname/inet_ntoa) and accept the deprecation.
+#  define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <winsock2.h>
 #else
 #include <sys/socket.h>
@@ -66,7 +70,7 @@ void Game::update(float dt){
     aiDialogue_.update(dt);
     if(aiDialogue_.hasPendingMessages())aiMessage_=aiDialogue_.popNextMessage();
     hud_.update(dt);
-    hitFlash_=std::max(0.f,hitFlash_-dt*2.f);
+    hitFlash_=(std::max)(0.f,hitFlash_-dt*2.f);
     switch(state_){
     case GameState::HOME:{
         auto sel=homeScreen_.handleInput(input_);

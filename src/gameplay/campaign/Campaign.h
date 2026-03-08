@@ -22,7 +22,10 @@ public:
         }
     }
 
-    void reset() { idx_ = 0; for (auto& c : completed_) c = false; }
+    void reset() {
+        idx_ = 0;
+        for (std::size_t i = 0; i < completed_.size(); ++i) completed_[i] = false;
+    }
 
     bool isComplete() const {
         for (bool c : completed_) if (!c) return false;

@@ -25,6 +25,7 @@ public:
     void begin2D();
     Renderer2D& hud() { return renderer2D_; }
     void end2D();
+    void loadLevel(const Level& level);
     bool isGL33()        const;
     bool isHardwareGPU() const;
     RenderBackend backend() const;

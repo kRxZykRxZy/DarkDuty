@@ -74,13 +74,14 @@ struct Mat4 {
     }
 
     // Perspective projection (fovY in radians, aspect = w/h)
-    static Mat4 perspective(float fovY, float aspect, float near, float far) {
+    // Parameters named zNear/zFar to avoid MSVC 'near'/'far' reserved-word conflict
+    static Mat4 perspective(float fovY, float aspect, float zNear, float zFar) {
         float tanHalf = std::tan(fovY * 0.5f);
         Mat4 r; r.m[0][0]=r.m[1][1]=r.m[2][2]=r.m[2][3]=r.m[3][2]=0.f; r.m[3][3]=0.f;
         r.m[0][0] =  1.f / (aspect * tanHalf);
         r.m[1][1] =  1.f / tanHalf;
-        r.m[2][2] = -(far + near) / (far - near);
-        r.m[2][3] = -(2.f * far * near) / (far - near);
+        r.m[2][2] = -(zFar + zNear) / (zFar - zNear);
+        r.m[2][3] = -(2.f * zFar * zNear) / (zFar - zNear);
         r.m[3][2] = -1.f;
         return r;
     }

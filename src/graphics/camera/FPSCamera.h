@@ -20,7 +20,7 @@ public:
     void rotate(float dx, float dy) {
         yaw   += dx * sensitivity;
         pitch -= dy * sensitivity;                       // invert Y
-        pitch  = std::max(-1.535f, std::min(1.535f, pitch)); // ±88°
+        pitch  = (std::max)(-1.535f, (std::min)(1.535f, pitch)); // ±88°
     }
 
     // ── Movement on XZ plane (ignores pitch) ────────────────────────────────

@@ -45,6 +45,8 @@ public:
 private:
     // Try a specific GL version; returns true on success
     bool tryGL(int major, int minor, bool coreProfile);
+    // Apply common GL state after context creation
+    void setupGLState();
     // Apply cross-platform SDL hints that prefer hardware GPU
     static void applyGpuHints();
 

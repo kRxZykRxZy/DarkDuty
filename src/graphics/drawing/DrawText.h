@@ -4,6 +4,12 @@
 #include <SDL2/SDL.h>
 #include <string>
 
+// Undefine the Windows GDI DrawText macro (DrawTextA/W) that would
+// otherwise rename our class on MSVC.
+#ifdef DrawText
+#  undef DrawText
+#endif
+
 class DrawText {
 public:
     bool init(SDL_Renderer* sdlFallback = nullptr);

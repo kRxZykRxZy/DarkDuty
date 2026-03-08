@@ -11,12 +11,12 @@ struct Weapon {
     bool  isReloading  = false;
 
     void update(float dt) {
-        fireCooldown = std::max(0.f, fireCooldown - dt);
+        fireCooldown = (std::max)(0.f, fireCooldown - dt);
         if (isReloading) {
             reloadTimer -= dt;
             if (reloadTimer <= 0.f) {
                 int need      = def.magCapacity - ammoInMag;
-                int take      = std::min(need, reserveAmmo);
+                int take      = (std::min)(need, reserveAmmo);
                 ammoInMag    += take;
                 reserveAmmo  -= take;
                 isReloading   = false;

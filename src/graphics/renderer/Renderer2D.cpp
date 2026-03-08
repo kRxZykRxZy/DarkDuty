@@ -117,7 +117,7 @@ void Renderer2D::drawRectOutline(float x, float y, float w, float h,
 void Renderer2D::drawLine(float x1, float y1, float x2, float y2,
                            float r, float g, float b, float a) {
     float dx = x2 - x1, dy = y2 - y1;
-    float len = std::sqrtf(dx*dx + dy*dy);
+    float len = std::sqrt(dx*dx + dy*dy);
     if (len < 0.5f) return;
     // Perpendicular for thickness
     float nx = -dy / len * 1.f, ny = dx / len * 1.f;
@@ -144,8 +144,8 @@ void Renderer2D::drawCircleFilled(float cx, float cy, float rad,
         float a1 = (float)i     / SEGS * 6.2831853f;
         float a2 = (float)(i+1) / SEGS * 6.2831853f;
         batch_.push_back({cx,                         cy,                         0.f, 0.f, r, g, b, a});
-        batch_.push_back({cx + std::cosf(a1)*rad,     cy + std::sinf(a1)*rad,     0.f, 0.f, r, g, b, a});
-        batch_.push_back({cx + std::cosf(a2)*rad,     cy + std::sinf(a2)*rad,     0.f, 0.f, r, g, b, a});
+        batch_.push_back({cx + std::cos(a1)*rad,     cy + std::sin(a1)*rad,     0.f, 0.f, r, g, b, a});
+        batch_.push_back({cx + std::cos(a2)*rad,     cy + std::sin(a2)*rad,     0.f, 0.f, r, g, b, a});
     }
 }
 

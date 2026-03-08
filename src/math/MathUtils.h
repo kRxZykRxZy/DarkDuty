@@ -16,7 +16,7 @@ static constexpr float RAD2DEG  = 180.f / PI;
 inline float toRadians(float deg) { return deg * DEG2RAD; }
 inline float toDegrees(float rad) { return rad * RAD2DEG; }
 
-inline float clamp(float v, float lo, float hi) { return std::max(lo, std::min(hi, v)); }
+inline float clamp(float v, float lo, float hi) { return (std::max)(lo, (std::min)(hi, v)); }
 inline float clamp01(float v) { return clamp(v, 0.f, 1.f); }
 inline float lerp(float a, float b, float t) { return a + (b-a)*t; }
 inline float smoothstep(float e0, float e1, float x) {
