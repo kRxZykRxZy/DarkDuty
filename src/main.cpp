@@ -1,3 +1,7 @@
+#define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
 #include "graphics/opengl/GpuPreference.h"
 #include <SDL2/SDL.h>
 #include <cstdlib>
