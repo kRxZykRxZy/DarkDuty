@@ -3,6 +3,7 @@
 #include <ws2tcpip.h>
 #include <windows.h>
 #include "graphics/opengl/GpuPreference.h"
+#define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 #include <cstdlib>
 #include <ctime>
