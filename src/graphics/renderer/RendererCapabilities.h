@@ -1,5 +1,5 @@
 #pragma once
-#include "GpuInfo.h"
+#include "../opengl/GpuInfo.h"
 
 // Runtime capability flags derived from GpuInfo – used throughout the renderer
 // to gate feature usage (shadows, post-process, etc.)
