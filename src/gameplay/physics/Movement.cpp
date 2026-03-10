@@ -8,9 +8,12 @@ namespace Movement {
 void movePlayer(Player& p, const InputManager& input, const FPSCamera& cam, float dt, const TileMap& map) {
     constexpr float GRAVITY = 9.8f;
     constexpr float JUMP_VELOCITY = 5.6f;
+    constexpr float MAX_FALL_SPEED = 35.f;
     constexpr float GROUND_ACCEL = 18.f;
     constexpr float AIR_ACCEL = 7.f;
     constexpr float GROUND_DAMPING = 10.f;
+    constexpr float COLLISION_EPSILON = 1e-4f;
+    constexpr float GROUND_Y = 0.f;
     const InputState& s = input.state();
 
     // Camera-relative movement direction (XZ plane only)
@@ -55,10 +58,10 @@ void movePlayer(Player& p, const InputManager& input, const FPSCamera& cam, floa
     Collision::sphereVsMap(posX, p.radius, map);
     Collision::sphereVsMap(posZ, p.radius, map);
 
-    if (std::fabs(posX.x - newPos.x) > 1e-4f) {
+    if (std::fabs(posX.x - newPos.x) > COLLISION_EPSILON) {
         p.velX = 0.f;
     }
-    if (std::fabs(posZ.z - newPos.z) > 1e-4f) {
+    if (std::fabs(posZ.z - newPos.z) > COLLISION_EPSILON) {
         p.velZ = 0.f;
     }
     p.pos.x = posX.x;
@@ -68,10 +71,10 @@ void movePlayer(Player& p, const InputManager& input, const FPSCamera& cam, floa
         p.velY = JUMP_VELOCITY;
         p.onGround = false;
     }
-    p.velY -= GRAVITY * dt;
+    p.velY = (std::max)(p.velY - GRAVITY * dt, -MAX_FALL_SPEED);
     p.pos.y += p.velY * dt;
-    if (p.pos.y <= 0.f) {
-        p.pos.y = 0.f;
+    if (p.pos.y <= GROUND_Y) {
+        p.pos.y = GROUND_Y;
         p.velY = 0.f;
         p.onGround = true;
     }
