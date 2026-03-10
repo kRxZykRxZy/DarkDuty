@@ -25,7 +25,7 @@ int CampaignSelectScreen::handleInput(const InputManager& input){
     int n=(std::max)(1,missionCount_);
     if(input.keyPressed(SDLK_UP)||input.keyPressed(SDLK_w))sel_=(sel_+n-1)%n;
     if(input.keyPressed(SDLK_DOWN)||input.keyPressed(SDLK_s))sel_=(sel_+1)%n;
-    if(input.keyPressed(SDLK_LEFT)||input.keyPressed(SDLK_a))difficulty_=(difficulty_+3-1)%3;
+    if(input.keyPressed(SDLK_LEFT)||input.keyPressed(SDLK_a))difficulty_=(difficulty_+2)%3;
     if(input.keyPressed(SDLK_RIGHT)||input.keyPressed(SDLK_d))difficulty_=(difficulty_+1)%3;
     if(r_){
         float mx=input.state().mouseX,my=input.state().mouseY;

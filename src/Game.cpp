@@ -18,6 +18,13 @@
 #include <arpa/inet.h>
 #endif
 
+namespace {
+constexpr float EASY_PLAYER_HP_MULT = 1.2f;
+constexpr float HARD_PLAYER_HP_MULT = 0.85f;
+constexpr float EASY_ENEMY_MULT     = 0.75f;
+constexpr float HARD_ENEMY_MULT     = 1.35f;
+}
+
 bool Game::init(){
     ConfigManager::loadFromFile("config.ini");
     config_=ConfigManager::get();
@@ -191,8 +198,8 @@ void Game::startMission(int idx){
     currentMission_=idx;
     auto& m=campaign_.get(idx);
     player_=Player{};player_.pos=m.level.playerSpawn;
-    if(difficulty_==0){player_.maxHp=(std::max)(1,(int)std::lround(player_.maxHp*1.2f));}
-    else if(difficulty_==2){player_.maxHp=(std::max)(1,(int)std::lround(player_.maxHp*0.85f));}
+    if(difficulty_==0){player_.maxHp=(std::max)(1,(int)std::lround(player_.maxHp*EASY_PLAYER_HP_MULT));}
+    else if(difficulty_==2){player_.maxHp=(std::max)(1,(int)std::lround(player_.maxHp*HARD_PLAYER_HP_MULT));}
     player_.hp=player_.maxHp;
     enemies_.clear();bullets_.clear();explosions_.clear();
     weapons_.clear();
@@ -241,8 +248,8 @@ void Game::spawnEnemiesForWave(int wave){
 
 void Game::applyDifficultyToEnemies(std::size_t fromIndex){
     float mul=1.f;
-    if(difficulty_==0)mul=0.75f;
-    else if(difficulty_==2)mul=1.35f;
+    if(difficulty_==0)mul=EASY_ENEMY_MULT;
+    else if(difficulty_==2)mul=HARD_ENEMY_MULT;
     for(std::size_t i=fromIndex;i<enemies_.size();++i){
         auto& e=enemies_[i];
         e.maxHp=(std::max)(1,(int)std::lround(e.maxHp*mul));

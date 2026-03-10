@@ -1,7 +1,8 @@
 #include "HomeScreen.h"
 #include <string>
+#include <cstddef>
 static const char* ITEMS[]={"PLAY","MISSIONS","SETTINGS","CREDITS","QUIT"};
-static constexpr int ITEM_COUNT = (int)(sizeof(ITEMS) / sizeof(ITEMS[0]));
+static constexpr std::size_t ITEM_COUNT = sizeof(ITEMS) / sizeof(ITEMS[0]);
 
 void HomeScreen::draw(){
     if(!r_) return;
@@ -14,7 +15,7 @@ void HomeScreen::draw(){
     auto fS=dt_?dt_->fontSmall():nullptr;
     r_->drawText("DARK DUTY",(float)(sw/2),(float)(sh/2-160),fL,1.f,0.65f,0.f,1.f,true);
     r_->drawText("A Tactical FPS",(float)(sw/2),(float)(sh/2-110),fM,0.6f,0.7f,0.4f,1.f,true);
-    for(int i=0;i<ITEM_COUNT;i++){bool sel=(i==selected_);float y=(float)(sh/2-70+i*50);
+    for(std::size_t i=0;i<ITEM_COUNT;i++){bool sel=((int)i==selected_);float y=(float)(sh/2-70+(int)i*50);
         r_->drawRect((float)(sw/2-120),y-4,240,36,sel?0.1f:0.05f,sel?0.2f:0.08f,0.f,0.9f);
         if(sel)r_->drawRectOutline((float)(sw/2-120),y-4,240,36,1.f,0.6f,0.f,0.8f);
         r_->drawText(ITEMS[i],(float)(sw/2),y,fM,sel?1.f:0.6f,sel?0.8f:0.5f,0.f,1.f,true);}
@@ -22,13 +23,14 @@ void HomeScreen::draw(){
 }
 HomeScreen::Selection HomeScreen::handleInput(const InputManager& input){
     if(!r_) return Selection::NONE;
-    if(input.keyPressed(SDLK_UP)||input.keyPressed(SDLK_w)){selected_=(selected_+ITEM_COUNT-1)%ITEM_COUNT;}
-    if(input.keyPressed(SDLK_DOWN)||input.keyPressed(SDLK_s)){selected_=(selected_+1)%ITEM_COUNT;}
+    int count=(int)ITEM_COUNT;
+    if(input.keyPressed(SDLK_UP)||input.keyPressed(SDLK_w)){selected_=(selected_+count-1)%count;}
+    if(input.keyPressed(SDLK_DOWN)||input.keyPressed(SDLK_s)){selected_=(selected_+1)%count;}
     float mx=input.state().mouseX,my=input.state().mouseY;
-    for(int i=0;i<ITEM_COUNT;i++){
-        float y=(float)(r_->screenH()/2-70+i*50);
+    for(std::size_t i=0;i<ITEM_COUNT;i++){
+        float y=(float)(r_->screenH()/2-70+(int)i*50);
         if(mx>=(float)(r_->screenW()/2-120)&&mx<=(float)(r_->screenW()/2+120)&&my>=y-4&&my<=y+32){
-            selected_=i;
+            selected_=(int)i;
             if(input.mouseButtonPressed(0))return(Selection)selected_;
         }
     }
