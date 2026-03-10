@@ -93,3 +93,10 @@ add_custom_command(TARGET DarkDuty POST_BUILD
     # If you want to copy curl DLL from manual install, uncomment next line. If vcpkg handles DLLs, you may not need this.
     # COMMAND ${CMAKE_COMMAND} -E copy_if_different "C:/vcpkg/installed/x64-windows/bin/libcurl.dll" $<TARGET_FILE_DIR:DarkDuty>
 )
+
+# In CMakeLists.txt, after add_executable
+if(MSVC)
+    set_target_properties(DarkDuty PROPERTIES
+        LINK_FLAGS "/SUBSYSTEM:CONSOLE"
+    )
+endif()
