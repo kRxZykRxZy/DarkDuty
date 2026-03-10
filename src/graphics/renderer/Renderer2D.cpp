@@ -19,6 +19,10 @@ bool Renderer2D::init(int screenW, int screenH, SDL_Window* softwareWindow) {
             return false;
         }
         SDL_SetRenderDrawBlendMode(sdlRenderer_, SDL_BLENDMODE_BLEND);
+        SDL_RendererInfo info{};
+        if (SDL_GetRendererInfo(sdlRenderer_, &info) == 0 && (info.flags & SDL_RENDERER_SOFTWARE) == 0) {
+            std::fprintf(stderr, "[Renderer2D] Warning: fallback renderer '%s' is not flagged as software\n", info.name ? info.name : "unknown");
+        }
         textRenderer_.init(sdlRenderer_);
         return true;
     }
