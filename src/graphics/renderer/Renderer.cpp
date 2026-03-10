@@ -28,7 +28,14 @@ void Renderer::drawBullet(Vec3 pos) { if(in3D_) renderer3D_.drawBullet(pos); }
 void Renderer::drawExplosion(Vec3 pos, float r, float t) { if(in3D_) renderer3D_.drawExplosion(pos,r,t); }
 void Renderer::drawWeaponModel(int type) { if(in3D_) renderer3D_.drawWeaponViewModel(type); }
 void Renderer::end3D()  { if(in3D_) { renderer3D_.endFrame(); in3D_=false; } }
-void Renderer::begin2D(){ if(!useGL_) return; renderer2D_.beginBatch(); in2D_=true; }
+void Renderer::begin2D(){
+    if(!useGL_) return;
+    glViewport(0,0,sw_,sh_);
+    glClearColor(0.02f,0.04f,0.02f,1.f);
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+    renderer2D_.beginBatch();
+    in2D_=true;
+}
 void Renderer::end2D()  { if(in2D_)  { renderer2D_.endBatch(); in2D_=false; ctx_->swap(); } }
 bool Renderer::isGL33()        const { auto b=ctx_->backend(); return b==RenderBackend::OPENGL_33_HARDWARE||b==RenderBackend::OPENGL_33_SOFTWARE; }
 bool Renderer::isHardwareGPU() const { return ctx_->backend()==RenderBackend::OPENGL_33_HARDWARE; }

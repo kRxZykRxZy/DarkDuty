@@ -41,6 +41,8 @@ bool Game::init(){
     pauseScreen_.init(r2d,dt);gameOverScreen_.init(r2d,dt);victoryScreen_.init(r2d,dt);
     mpMenu_.init(r2d,dt);lobbyScreen_.init(r2d,dt);settingsScreen_.init(r2d,dt);creditsScreen_.init(r2d,dt);
     hud_.init(r2d,dt);
+    setState(GameState::HOME);
+    glCtx_.captureMouse(false);
     running_=true;
     return true;
 }
