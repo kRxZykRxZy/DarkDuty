@@ -12,9 +12,13 @@ bool Renderer2D::init(int screenW, int screenH, SDL_Window* softwareWindow) {
     if (software_) {
         sdlRenderer_ = SDL_CreateRenderer(softwareWindow, -1, SDL_RENDERER_SOFTWARE);
         if (!sdlRenderer_) {
+            sdlRenderer_ = SDL_CreateRenderer(softwareWindow, -1, 0);
+        }
+        if (!sdlRenderer_) {
             std::fprintf(stderr, "[Renderer2D] SDL software renderer init failed: %s\n", SDL_GetError());
             return false;
         }
+        SDL_SetRenderDrawBlendMode(sdlRenderer_, SDL_BLENDMODE_BLEND);
         textRenderer_.init(sdlRenderer_);
         return true;
     }
@@ -217,6 +221,7 @@ void Renderer2D::drawText(const std::string& text, float x, float y, TTF_Font* f
         if (!surf) return;
         SDL_Texture* tex = SDL_CreateTextureFromSurface(sdlRenderer_, surf);
         if (tex) {
+            SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
             SDL_Rect dst{(int)x, (int)y, surf->w, surf->h};
             if (centred) { dst.x -= dst.w / 2; dst.y -= dst.h / 2; }
             SDL_RenderCopy(sdlRenderer_, tex, nullptr, &dst);

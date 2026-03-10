@@ -83,6 +83,7 @@ bool GLContext::create(const char* title, int w, int h, bool fullscreen) {
     if (!window) {
         std::fprintf(stderr, "SDL_CreateWindow (OpenGL) failed: %s\n", SDL_GetError());
         std::fprintf(stderr, "[GL] Falling back to SDL2 software window.\n");
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
         Uint32 swFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
         if (fullscreen) swFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
         window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED,
@@ -124,6 +125,7 @@ bool GLContext::create(const char* title, int w, int h, bool fullscreen) {
     std::fprintf(stderr, "[GL] OpenGL 2.1 unavailable — falling back to SDL2 software.\n");
 
     // ── Attempt 3: Pure SDL2 software renderer (no OpenGL at all)
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
     SDL_DestroyWindow(window); window = nullptr;
     Uint32 swFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
     if (fullscreen) swFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
