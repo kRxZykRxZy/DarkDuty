@@ -22,6 +22,8 @@ struct Player {
     bool  isReloading      = false;
     float reloadTimer      = 0.f;
     float radius           = 0.4f; // collision radius (world units)
+    float velY             = 0.f;
+    bool  onGround         = true;
 
     void takeDamage(int d) {
         if (invincTimer > 0.f) return;

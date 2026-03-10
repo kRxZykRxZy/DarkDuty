@@ -5,6 +5,8 @@
 namespace Movement {
 
 void movePlayer(Player& p, const InputManager& input, const FPSCamera& cam, float dt, const TileMap& map) {
+    constexpr float GRAVITY = 9.8f;
+    constexpr float JUMP_VELOCITY = 5.6f;
     const InputState& s = input.state();
 
     // Camera-relative movement direction (XZ plane only)
@@ -36,8 +38,17 @@ void movePlayer(Player& p, const InputManager& input, const FPSCamera& cam, floa
         p.pos.z = posZ.z;
     }
 
-    // Keep player Y at 0 (flat world)
-    p.pos.y = 0.f;
+    if (input.keyPressed(SDLK_SPACE) && p.onGround) {
+        p.velY = JUMP_VELOCITY;
+        p.onGround = false;
+    }
+    p.velY -= GRAVITY * dt;
+    p.pos.y += p.velY * dt;
+    if (p.pos.y <= 0.f) {
+        p.pos.y = 0.f;
+        p.velY = 0.f;
+        p.onGround = true;
+    }
 }
 
 void moveEnemy(Enemy& e, Vec3 target, float dt, const TileMap& map) {
