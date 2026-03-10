@@ -81,8 +81,22 @@ bool GLContext::create(const char* title, int w, int h, bool fullscreen) {
     window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED,
                               SDL_WINDOWPOS_CENTERED, w, h, glFlags);
     if (!window) {
-        std::fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
-        return false;
+        std::fprintf(stderr, "SDL_CreateWindow (OpenGL) failed: %s\n", SDL_GetError());
+        std::fprintf(stderr, "[GL] Falling back to SDL2 software window.\n");
+        Uint32 swFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+        if (fullscreen) swFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+        window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED,
+                                  SDL_WINDOWPOS_CENTERED, w, h, swFlags);
+        if (!window) {
+            std::fprintf(stderr, "SDL_CreateWindow (software) failed: %s\n", SDL_GetError());
+            return false;
+        }
+        backend_ = RenderBackend::SDL2_SOFTWARE;
+        gpuInfo_.vendor   = "CPU";
+        gpuInfo_.renderer = "SDL2 Software Renderer";
+        gpuInfo_.isHardware = false;
+        std::printf("[Renderer] Backend: SDL2 Software (CPU fallback)\n");
+        return true;
     }
 
     // ── Attempt 1: OpenGL 3.3 Core (hardware GPU preferred via DRI_PRIME/hints)

@@ -27,7 +27,7 @@ public:
 
     bool create(const char* title, int w, int h, bool fullscreen = false);
     void destroy();
-    void swap() const { if (window) SDL_GL_SwapWindow(window); }
+    void swap() const { if (window && context) SDL_GL_SwapWindow(window); }
     void setTitle(const std::string& t) { if (window) SDL_SetWindowTitle(window, t.c_str()); }
     bool isOpen()    const { return window != nullptr; }
     bool hasOpenGL() const { return context != nullptr; }

@@ -5,13 +5,14 @@
 #include "../../graphics/opengl/GLBuffer.h"
 #include "../../math/Mat4.h"
 #include "../drawing/DrawText.h"
+#include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <string>
 #include <vector>
 
 class Renderer2D {
 public:
-    bool init(int screenW, int screenH);
+    bool init(int screenW, int screenH, SDL_Window* softwareWindow = nullptr);
     void shutdown();
     void resize(int w, int h);
 
@@ -41,6 +42,8 @@ private:
     std::vector<Vtx2D> batch_;
     GLuint             currentTex_ = 0;
     bool               inBatch_    = false;
+    bool               software_   = false;
+    SDL_Renderer*      sdlRenderer_= nullptr;
     int                sw_         = 0;
     int                sh_         = 0;
 
