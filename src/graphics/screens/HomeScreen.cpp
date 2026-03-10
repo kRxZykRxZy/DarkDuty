@@ -1,7 +1,7 @@
 #include "HomeScreen.h"
 #include <string>
 static const char* ITEMS[]={"PLAY","MISSIONS","SETTINGS","CREDITS","QUIT"};
-static constexpr int ITEM_COUNT = 5;
+static constexpr int ITEM_COUNT = (int)(sizeof(ITEMS) / sizeof(ITEMS[0]));
 
 void HomeScreen::draw(){
     if(!r_) return;

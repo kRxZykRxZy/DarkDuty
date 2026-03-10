@@ -33,6 +33,7 @@
 #include "graphics/screens/CreditsScreen.h"
 #include <vector>
 #include <string>
+#include <cstddef>
 
 class Game {
 public:
@@ -60,6 +61,7 @@ private:
     std::vector<Explosion> explosions_;
     std::vector<Weapon>    weapons_;
     int          currentMission_=0;
+    int          difficulty_=1; // 0=Easy, 1=Normal, 2=Hard
     bool         isHost_=false,isClient_=false;
     std::string  serverIp_;
     float        hitFlash_=0.f;
@@ -87,6 +89,7 @@ private:
     void setState(GameState s);
     void handlePlayingUpdate(float dt);
     void spawnEnemiesForWave(int wave);
+    void applyDifficultyToEnemies(std::size_t fromIndex);
     bool allEnemiesDead() const;
     std::string getLocalIP() const;
 };
