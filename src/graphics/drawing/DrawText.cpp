@@ -2,11 +2,21 @@
 #include <cstdio>
 
 static const char* FONT_PATHS[] = {
+#ifdef _WIN32
+    "C:/Windows/Fonts/segoeui.ttf",
+    "C:/Windows/Fonts/arial.ttf",
+    "C:/Windows/Fonts/tahoma.ttf",
+#elif defined(__APPLE__)
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+    "/System/Library/Fonts/Supplemental/Helvetica.ttf",
+    "/System/Library/Fonts/Supplemental/Verdana.ttf",
+#else
     "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/TTF/DejaVuSans.ttf",
     "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
     "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf",
+#endif
     nullptr
 };
 
