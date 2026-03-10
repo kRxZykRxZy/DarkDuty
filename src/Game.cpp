@@ -74,9 +74,10 @@ void Game::update(float dt){
     switch(state_){
     case GameState::HOME:{
         auto sel=homeScreen_.handleInput(input_);
-        if(sel==HomeScreen::Selection::CAMPAIGN)setState(GameState::CAMPAIGN_SELECT);
-        else if(sel==HomeScreen::Selection::MULTIPLAYER)setState(GameState::MULTIPLAYER_MENU);
+        if(sel==HomeScreen::Selection::PLAY){currentMission_=0;startMission(currentMission_);}
+        else if(sel==HomeScreen::Selection::MISSIONS)setState(GameState::CAMPAIGN_SELECT);
         else if(sel==HomeScreen::Selection::SETTINGS)setState(GameState::SETTINGS);
+        else if(sel==HomeScreen::Selection::CREDITS)setState(GameState::CREDITS);
         else if(sel==HomeScreen::Selection::QUIT)running_=false;
         break;}
     case GameState::CAMPAIGN_SELECT:{
