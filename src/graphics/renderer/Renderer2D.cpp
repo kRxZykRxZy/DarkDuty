@@ -44,7 +44,10 @@ bool Renderer2D::init(int screenW, int screenH, SDL_Window* softwareWindow) {
 void Renderer2D::shutdown() {
     textRenderer_.shutdown();
     if (software_) {
-        if (sdlRenderer_) { SDL_DestroyRenderer(sdlRenderer_); sdlRenderer_ = nullptr; }
+        if (sdlRenderer_) {
+            SDL_DestroyRenderer(sdlRenderer_);
+            sdlRenderer_ = nullptr;
+        }
     } else {
         vao_.destroy();
         vbo_.destroy();
