@@ -5,6 +5,11 @@
 #include <cctype>
 #include <sstream>
 #include <iomanip>
+#include <mutex>
+#include <thread>
+#include <chrono>
+
+static std::mutex aiMutex;
 
 size_t PollinationsClient::writeCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
@@ -22,13 +27,9 @@ std::string PollinationsClient::urlEncode(const std::string& s)
     for (unsigned char c : s)
     {
         if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
-        {
             encoded << c;
-        }
         else
-        {
             encoded << '%' << std::setw(2) << std::setfill('0') << (int)c;
-        }
     }
 
     return encoded.str();
@@ -36,40 +37,32 @@ std::string PollinationsClient::urlEncode(const std::string& s)
 
 std::string PollinationsClient::query(const std::string& prompt)
 {
+    std::lock_guard<std::mutex> lock(aiMutex); // ONE REQUEST AT A TIME
+
     std::string response;
 
-    static bool curlInitialized = false;
-    if (!curlInitialized)
+    static bool curlInit = false;
+    if (!curlInit)
     {
         curl_global_init(CURL_GLOBAL_DEFAULT);
-        curlInitialized = true;
+        curlInit = true;
     }
 
     CURL* curl = curl_easy_init();
     if (!curl)
     {
-        std::fprintf(stderr, "[AI] Failed to init CURL\n");
+        std::fprintf(stderr, "[AI] curl init failed\n");
         return "";
     }
 
-    std::string encodedPrompt = urlEncode(prompt);
-    std::string url = "https://text.pollinations.ai/" + encodedPrompt;
-
-    struct curl_slist* headers = nullptr;
-    headers = curl_slist_append(headers, "Accept: text/plain");
+    std::string url = "https://text.pollinations.ai/" + urlEncode(prompt);
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "DarkDuty/1.0");
-
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 
     CURLcode res = curl_easy_perform(curl);
 
@@ -83,15 +76,28 @@ std::string PollinationsClient::query(const std::string& prompt)
         long httpCode = 0;
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
 
+        if (httpCode == 429)
+        {
+            std::fprintf(stderr, "[AI] Rate limited (429). Waiting...\n");
+
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+
+            curl_easy_cleanup(curl);
+
+            return query(prompt); // retry once
+        }
+
         if (httpCode != 200)
         {
-            std::fprintf(stderr, "[AI] HTTP error code: %ld\n", httpCode);
+            std::fprintf(stderr, "[AI] HTTP error: %ld\n", httpCode);
             response.clear();
         }
     }
 
-    curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
+
+    // small delay to avoid hitting rate limits
+    std::this_thread::sleep_for(std::chrono::milliseconds(1200));
 
     return response;
 }
