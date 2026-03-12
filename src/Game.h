@@ -22,6 +22,7 @@
 #include "gameplay/weapons/Weapon.h"
 #include "graphics/hud/HUD.h"
 #include "graphics/screens/HomeScreen.h"
+#include "graphics/screens/LoadingScreen.h"
 #include "graphics/screens/CampaignSelectScreen.h"
 #include "graphics/screens/BriefingScreen.h"
 #include "graphics/screens/PauseScreen.h"
@@ -66,6 +67,7 @@ private:
     std::string  serverIp_;
     float        hitFlash_=0.f;
     HomeScreen           homeScreen_;
+    LoadingScreen        loadingScreen_;
     CampaignSelectScreen campaignSelect_;
     BriefingScreen       briefing_;
     PauseScreen          pauseScreen_;
@@ -80,11 +82,22 @@ private:
     Clock        clock_;
     Config       config_;
     bool         running_=false;
+
+    // Loading screen state
+    float        loadProgress_ = 0.f;  // 0.0 – 100.0
+    int          loadPhase_    = 0;    // 0-4 loading sub-phases
+    int          pendingMission_ = 0;
+
+    // Scope / ADS state
+    bool         inScope_      = false;
+
     void gameLoop();
     void processEvents();
     void update(float dt);
     void render();
     void startMission(int idx);
+    void launchLoading(int missionIdx);
+    void updateLoading(float dt);
     void endMission(bool victory);
     void setState(GameState s);
     void handlePlayingUpdate(float dt);
@@ -92,4 +105,5 @@ private:
     void applyDifficultyToEnemies(std::size_t fromIndex);
     bool allEnemiesDead() const;
     std::string getLocalIP() const;
+    void renderScopeOverlay();
 };

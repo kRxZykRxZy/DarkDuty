@@ -10,4 +10,6 @@ public:
     Selection handleInput(const InputManager& input);
 private:
     Renderer2D* r_=nullptr;DrawText* dt_=nullptr;int selected_=0;float time_=0.f;
+    // Buttons disabled in this build (only PLAY works)
+    static bool isDisabled(int idx) { return idx==1||idx==2||idx==3; }
 };

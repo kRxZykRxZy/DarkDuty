@@ -9,7 +9,10 @@ struct InputState {
     bool  reload    = false;
     bool  interact  = false;
     bool  pause     = false;
-    int   weaponSlot = -1;  // -1 = no change; 0-5 = select weapon
+    bool  crouch    = false;   // Ctrl held — crouch
+    bool  sprint    = false;   // Shift held — sprint
+    int   weaponSlot = -1;     // -1 = no change; 0-5 = select weapon
+    int   scrollDir  = 0;      // +1 scroll up / -1 scroll down (weapon cycle)
     float mouseX    = 0.f;
     float mouseY    = 0.f;
     int   mouseDX   = 0;

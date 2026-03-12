@@ -15,5 +15,6 @@ namespace TileScale {
     constexpr float SIZE        = 2.f;   // world units per tile (XZ)
     constexpr float WALL_H      = 3.f;   // wall height (Y)
     constexpr float COVER_H     = 1.2f;  // cover/crate height
-    constexpr float EYE_H       = 1.7f;  // player camera eye height
+    constexpr float EYE_H       = 1.7f;  // player camera eye height (standing)
+    constexpr float EYE_H_CROUCHED = 1.0f; // player camera eye height (crouching)
 }

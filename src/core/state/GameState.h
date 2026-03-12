@@ -2,6 +2,7 @@
 
 enum class GameState {
     HOME,
+    LOADING,
     CAMPAIGN_SELECT,
     BRIEFING,
     PLAYING,
