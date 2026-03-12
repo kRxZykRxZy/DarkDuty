@@ -26,6 +26,8 @@ struct Player {
     float velZ             = 0.f;
     float velY             = 0.f;
     bool  onGround         = true;
+    bool  isCrouching      = false;
+    bool  isSprinting      = false;
 
     void takeDamage(int d) {
         if (invincTimer > 0.f) return;
@@ -46,7 +48,7 @@ struct Player {
 
     void heal(int a) { hp = (std::min)(maxHp, hp + a); }
 
-    float eyeY()    const { return pos.y + TileScale::EYE_H; }
+    float eyeY()    const { return pos.y + (isCrouching ? TileScale::EYE_H_CROUCHED : TileScale::EYE_H); }
     Vec3  eyePos()  const { return {pos.x, eyeY(), pos.z}; }
 
     Vec3 forward() const {

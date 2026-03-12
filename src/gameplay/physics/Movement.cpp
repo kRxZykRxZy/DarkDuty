@@ -29,13 +29,22 @@ void movePlayer(Player& p, const InputManager& input, const FPSCamera& cam, floa
     if (s.right) move += rgtDir;
     if (s.left)  move -= rgtDir;
 
+    // Update crouch / sprint states
+    p.isCrouching = s.crouch;
+    p.isSprinting = s.sprint && !s.crouch;
+
+    // Speed multiplier: crouch = 0.5×, sprint = 1.8×
+    float speedMul = 1.f;
+    if (p.isCrouching)  speedMul = 0.5f;
+    else if (p.isSprinting) speedMul = 1.8f;
+
     float len = move.length();
     float desiredX = 0.f;
     float desiredZ = 0.f;
     if (len > 0.01f) {
         move = move * (1.f / len); // normalise
-        desiredX = move.x * p.speed;
-        desiredZ = move.z * p.speed;
+        desiredX = move.x * p.speed * speedMul;
+        desiredZ = move.z * p.speed * speedMul;
     }
 
     float accel = p.onGround ? GROUND_ACCEL : AIR_ACCEL;

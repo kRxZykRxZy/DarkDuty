@@ -3,10 +3,12 @@
 #include "gameplay/physics/Movement.h"
 #include "gameplay/weapons/WeaponRegistry.h"
 #include "network/socket/SocketInit.h"
+#include "math/MathUtils.h"
 #include <SDL2/SDL.h>
 #include <cstdio>
 #include <cstring>
 #include <cmath>
+#include <algorithm>
 #ifdef _WIN32
 // Suppress deprecated Winsock API warnings; we use the legacy API for
 // simplicity (gethostbyname/inet_ntoa) and accept the deprecation.
@@ -23,6 +25,9 @@ constexpr float EASY_PLAYER_HP_MULT = 1.2f;
 constexpr float HARD_PLAYER_HP_MULT = 0.85f;
 constexpr float EASY_ENEMY_MULT     = 0.75f;
 constexpr float HARD_ENEMY_MULT     = 1.35f;
+constexpr float LOAD_PROGRESS_RATE  = 55.f;  // progress units per second (~1.8s total)
+constexpr float NORMAL_FOV_DEGREES  = 70.f;  // standard field of view
+constexpr float SCOPE_FOV_DEGREES   = 25.f;  // scoped / ADS field of view
 }
 
 bool Game::init(){
@@ -37,7 +42,7 @@ bool Game::init(){
     camera_.sensitivity=config_.mouseSensitivity;
     auto* r2d=&renderer_.hud();
     auto* dt=&renderer_.hud().textRenderer();
-    homeScreen_.init(r2d,dt);campaignSelect_.init(r2d,dt);briefing_.init(r2d,dt);
+    homeScreen_.init(r2d,dt);loadingScreen_.init(r2d,dt);campaignSelect_.init(r2d,dt);briefing_.init(r2d,dt);
     pauseScreen_.init(r2d,dt);gameOverScreen_.init(r2d,dt);victoryScreen_.init(r2d,dt);
     mpMenu_.init(r2d,dt);lobbyScreen_.init(r2d,dt);settingsScreen_.init(r2d,dt);creditsScreen_.init(r2d,dt);
     hud_.init(r2d,dt);
@@ -76,6 +81,70 @@ void Game::processEvents(){
 
 void Game::setState(GameState s){state_=s;}
 
+void Game::launchLoading(int missionIdx){
+    pendingMission_=missionIdx;
+    loadProgress_=0.f;
+    loadPhase_=0;
+    setState(GameState::LOADING);
+}
+
+void Game::updateLoading(float dt){
+    // Advance the progress bar
+    loadProgress_+= LOAD_PROGRESS_RATE * dt;
+    if(loadProgress_ > 100.f) loadProgress_=100.f;
+
+    auto& m=campaign_.get(pendingMission_);
+
+    // Phase 0 (0-25%): initialise player and weapons
+    if(loadPhase_==0 && loadProgress_>=25.f){
+        currentMission_=pendingMission_;
+        player_=Player{};
+        player_.pos=m.level.playerSpawn;
+        if(difficulty_==0){player_.maxHp=(std::max)(1,(int)std::lround(player_.maxHp*EASY_PLAYER_HP_MULT));}
+        else if(difficulty_==2){player_.maxHp=(std::max)(1,(int)std::lround(player_.maxHp*HARD_PLAYER_HP_MULT));}
+        player_.hp=player_.maxHp;
+        enemies_.clear();bullets_.clear();explosions_.clear();
+        weapons_.clear();
+        for(auto wid:m.loadout)weapons_.push_back(WeaponRegistry::make(wid));
+        if(!weapons_.empty())player_.currentWeaponIdx=0;
+        loadPhase_=1;
+    }
+
+    // Phase 1 (25-55%): spawn enemies and init objectives
+    if(loadPhase_==1 && loadProgress_>=55.f){
+        spawner_.init(m.level);spawner_.spawnWave(0,enemies_);
+        applyDifficultyToEnemies(0);
+        int total=(int)std::count_if(m.level.enemySpawns.begin(),m.level.enemySpawns.end(),
+            [](const EnemySpawnPoint&s){return s.wave==0;});
+        objTracker_.init(m.level.objective,total);
+        waves_.init(m.level.objective.wavesTotal);
+        loadPhase_=2;
+    }
+
+    // Phase 2 (55-85%): pre-render map (build chunk mesh + lighting)
+    if(loadPhase_==2 && loadProgress_>=85.f){
+        LightingParams lp;
+        if(m.level.lightPreset=="urban")lp=LightPresets::urban();
+        else if(m.level.lightPreset=="bunker")lp=LightPresets::bunker();
+        else lp=LightPresets::endgame();
+        renderer_.loadLevel(m.level);
+        loadPhase_=3;
+    }
+
+    // Phase 3 (85-100%): set up camera and finalise
+    if(loadPhase_==3 && loadProgress_>=100.f){
+        camera_.pos=player_.eyePos();camera_.yaw=player_.yaw;camera_.pitch=0.f;
+        camera_.setAspect(glCtx_.width,glCtx_.height);
+        renderer_.resize(glCtx_.width,glCtx_.height);
+        renderer_.hud().resize(glCtx_.width,glCtx_.height);
+        inScope_=false;
+        glCtx_.captureMouse(true);
+        setState(GameState::PLAYING);
+        aiDialogue_.requestMissionBriefing(m.title,m.briefing);
+        loadPhase_=0;
+    }
+}
+
 void Game::update(float dt){
     aiDialogue_.update(dt);
     if(aiDialogue_.hasPendingMessages())aiMessage_=aiDialogue_.popNextMessage();
@@ -86,13 +155,13 @@ void Game::update(float dt){
         auto sel=homeScreen_.handleInput(input_);
         if(sel==HomeScreen::Selection::PLAY){
             currentMission_=0;
-            startMission(currentMission_);
+            launchLoading(currentMission_);
         }
-        else if(sel==HomeScreen::Selection::MISSIONS)setState(GameState::CAMPAIGN_SELECT);
-        else if(sel==HomeScreen::Selection::SETTINGS)setState(GameState::SETTINGS);
-        else if(sel==HomeScreen::Selection::CREDITS)setState(GameState::CREDITS);
         else if(sel==HomeScreen::Selection::QUIT)running_=false;
         break;}
+    case GameState::LOADING:
+        updateLoading(dt);
+        break;
     case GameState::CAMPAIGN_SELECT:{
         int r=campaignSelect_.handleInput(input_);
         if(r==-2)setState(GameState::HOME);
@@ -150,12 +219,23 @@ void Game::handlePlayingUpdate(float dt){
     int dx=0,dy=0;input_.getMouseDelta(dx,dy);
     camera_.rotate((float)dx,(float)dy);
     player_.yaw=camera_.yaw;player_.pitch=camera_.pitch;
-    // Move player
+    // Move player (also updates crouch/sprint state)
     Movement::movePlayer(player_,input_,camera_,dt,campaign_.current().level.map);
     camera_.pos=player_.eyePos();
-    // Weapon select
+    // Scope / ADS: right mouse button toggles scope; update FOV
+    inScope_=input_.state().mouseRight;
+    camera_.fovY=inScope_?MathUtils::toRadians(SCOPE_FOV_DEGREES):MathUtils::toRadians(NORMAL_FOV_DEGREES);
+    // Weapon select via keyboard slots
     if(input_.state().weaponSlot>=0&&input_.state().weaponSlot<(int)weapons_.size())
         player_.currentWeaponIdx=input_.state().weaponSlot;
+    // Weapon cycle via scroll wheel
+    if(input_.state().scrollDir!=0&&!weapons_.empty()){
+        int n=(int)weapons_.size();
+        int nw=player_.currentWeaponIdx+input_.state().scrollDir;
+        if(nw<0)nw=n-1;
+        if(nw>=n)nw=0;
+        player_.currentWeaponIdx=nw;
+    }
     // Reload
     if(input_.state().reload&&!weapons_.empty())
         weapons_[player_.currentWeaponIdx].startReload();
@@ -237,6 +317,26 @@ void Game::endMission(bool victory){
     }
 }
 
+void Game::renderScopeOverlay(){
+    auto& r2d=renderer_.hud();
+    int sw=r2d.screenW(),sh=r2d.screenH();
+    float cx=(float)(sw/2),cy=(float)(sh/2);
+    float rad=(float)(sh)*0.38f;
+    // Dark panels around the scope circle
+    r2d.drawRect(0.f,0.f,(float)sw,cy-rad,0.f,0.f,0.f,1.f);
+    r2d.drawRect(0.f,cy+rad,(float)sw,(float)sh-(cy+rad),0.f,0.f,0.f,1.f);
+    r2d.drawRect(0.f,cy-rad,cx-rad,rad*2.f,0.f,0.f,0.f,1.f);
+    r2d.drawRect(cx+rad,cy-rad,(float)sw-(cx+rad),rad*2.f,0.f,0.f,0.f,1.f);
+    // Scope reticle crosshairs (green)
+    float lineLen=rad*0.88f;
+    r2d.drawLine(cx-lineLen,cy,cx-6.f,cy,0.f,0.85f,0.f,0.9f);
+    r2d.drawLine(cx+6.f,cy,cx+lineLen,cy,0.f,0.85f,0.f,0.9f);
+    r2d.drawLine(cx,cy-lineLen,cx,cy-6.f,0.f,0.85f,0.f,0.9f);
+    r2d.drawLine(cx,cy+6.f,cx,cy+lineLen,0.f,0.85f,0.f,0.9f);
+    // Centre dot
+    r2d.drawCircleFilled(cx,cy,3.f,0.f,0.9f,0.f,0.9f);
+}
+
 bool Game::allEnemiesDead() const{
     for(auto& e:enemies_)if(e.isAlive())return false;
     return true;
@@ -281,9 +381,12 @@ void Game::render(){
         if(!weapons_.empty())renderer_.drawWeaponModel(player_.currentWeaponIdx);
         renderer_.end3D();
         renderer_.begin2D();
+        if(inScope_)renderScopeOverlay();
         hud_.drawInGame(player_,weapons_,objTracker_.objective(),campaign_.current().level.map,enemies_,hitFlash_,waves_.currentWave(),waves_.totalWaves(),waves_.waveTimer());
         renderer_.end2D();
         break;}
+    case GameState::LOADING:
+        renderer_.begin2D();loadingScreen_.draw(loadProgress_);renderer_.end2D();break;
     case GameState::PAUSED:
         renderer_.begin2D();pauseScreen_.draw();renderer_.end2D();break;
     case GameState::HOME:

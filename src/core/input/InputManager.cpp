@@ -10,6 +10,7 @@ void InputManager::beginFrame() {
     state_.pause     = false;
     state_.interact  = false;
     state_.weaponSlot = -1;
+    state_.scrollDir  = 0;
 }
 
 void InputManager::processEvent(const SDL_Event& e) {
@@ -29,6 +30,8 @@ void InputManager::processEvent(const SDL_Event& e) {
         if (k == SDLK_r)                      state_.reload   = true;
         if (k == SDLK_e || k == SDLK_f)      state_.interact = true;
         if (k == SDLK_ESCAPE)                 state_.pause    = true;
+        if (k == SDLK_LCTRL || k == SDLK_RCTRL)  state_.crouch = true;
+        if (k == SDLK_LSHIFT || k == SDLK_RSHIFT) state_.sprint = true;
         // Weapon slots 1-6
         if (k >= SDLK_1 && k <= SDLK_6)
             state_.weaponSlot = (int)(k - SDLK_1);
@@ -44,6 +47,8 @@ void InputManager::processEvent(const SDL_Event& e) {
         if (k == SDLK_d || k == SDLK_RIGHT)  state_.right = false;
         if (k == SDLK_r)                      state_.reload   = false;
         if (k == SDLK_e || k == SDLK_f)      state_.interact = false;
+        if (k == SDLK_LCTRL || k == SDLK_RCTRL)  state_.crouch = false;
+        if (k == SDLK_LSHIFT || k == SDLK_RSHIFT) state_.sprint = false;
         break;
     }
 
@@ -76,6 +81,12 @@ void InputManager::processEvent(const SDL_Event& e) {
         state_.mouseDY += e.motion.yrel;
         mouseDX_       += e.motion.xrel;
         mouseDY_       += e.motion.yrel;
+        break;
+    }
+
+    case SDL_MOUSEWHEEL: {
+        if (e.wheel.y > 0)      state_.scrollDir =  1;
+        else if (e.wheel.y < 0) state_.scrollDir = -1;
         break;
     }
 
