@@ -4,7 +4,7 @@
 #include "../../core/input/InputManager.h"
 class HomeScreen {
 public:
-    enum class Selection{NONE=-1,CAMPAIGN=0,MULTIPLAYER=1,SETTINGS=2,QUIT=3};
+    enum class Selection{NONE=-1,PLAY=0,MISSIONS=1,SETTINGS=2,CREDITS=3,QUIT=4};
     void init(Renderer2D* r,DrawText* dt){r_=r;dt_=dt;}
     void draw();
     Selection handleInput(const InputManager& input);

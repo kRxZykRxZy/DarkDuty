@@ -4,9 +4,28 @@
 #include <cmath>
 #include <algorithm>
 
-bool Renderer2D::init(int screenW, int screenH) {
+bool Renderer2D::init(int screenW, int screenH, SDL_Window* softwareWindow) {
     sw_ = screenW;
     sh_ = screenH;
+    software_ = (softwareWindow != nullptr);
+
+    if (software_) {
+        sdlRenderer_ = SDL_CreateRenderer(softwareWindow, -1, SDL_RENDERER_SOFTWARE);
+        if (!sdlRenderer_) {
+            sdlRenderer_ = SDL_CreateRenderer(softwareWindow, -1, 0);
+        }
+        if (!sdlRenderer_) {
+            std::fprintf(stderr, "[Renderer2D] SDL software renderer init failed: %s\n", SDL_GetError());
+            return false;
+        }
+        SDL_SetRenderDrawBlendMode(sdlRenderer_, SDL_BLENDMODE_BLEND);
+        SDL_RendererInfo info{};
+        if (SDL_GetRendererInfo(sdlRenderer_, &info) == 0 && (info.flags & SDL_RENDERER_SOFTWARE) == 0) {
+            std::fprintf(stderr, "[Renderer2D] Warning: fallback renderer '%s' is not flagged as software\n", info.name ? info.name : "unknown");
+        }
+        textRenderer_.init(sdlRenderer_);
+        return true;
+    }
 
     if (!hudShader_.build(HUDShader::VERT, HUDShader::FRAG)) {
         std::fprintf(stderr, "[Renderer2D] HUD shader build failed\n");
@@ -32,9 +51,16 @@ bool Renderer2D::init(int screenW, int screenH) {
 
 void Renderer2D::shutdown() {
     textRenderer_.shutdown();
-    vao_.destroy();
-    vbo_.destroy();
-    hudShader_.destroy();
+    if (software_) {
+        if (sdlRenderer_) {
+            SDL_DestroyRenderer(sdlRenderer_);
+            sdlRenderer_ = nullptr;
+        }
+    } else {
+        vao_.destroy();
+        vbo_.destroy();
+        hudShader_.destroy();
+    }
 }
 
 void Renderer2D::resize(int w, int h) {
@@ -43,6 +69,14 @@ void Renderer2D::resize(int w, int h) {
 }
 
 void Renderer2D::beginBatch() {
+    if (software_) {
+        if (sdlRenderer_) {
+            SDL_SetRenderDrawColor(sdlRenderer_, 5, 10, 5, 255);
+            SDL_RenderClear(sdlRenderer_);
+        }
+        inBatch_ = true;
+        return;
+    }
     batch_.clear();
     currentTex_ = 0;
     inBatch_    = true;
@@ -54,6 +88,11 @@ void Renderer2D::beginBatch() {
 }
 
 void Renderer2D::endBatch() {
+    if (software_) {
+        if (sdlRenderer_) SDL_RenderPresent(sdlRenderer_);
+        inBatch_ = false;
+        return;
+    }
     flush();
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
@@ -102,6 +141,13 @@ void Renderer2D::pushQuad(float x, float y, float w, float h,
 
 void Renderer2D::drawRect(float x, float y, float w, float h,
                            float r, float g, float b, float a) {
+    if (software_) {
+        if (!sdlRenderer_) return;
+        SDL_SetRenderDrawColor(sdlRenderer_, (Uint8)(r*255), (Uint8)(g*255), (Uint8)(b*255), (Uint8)(a*255));
+        SDL_Rect rc{(int)x, (int)y, (int)w, (int)h};
+        SDL_RenderFillRect(sdlRenderer_, &rc);
+        return;
+    }
     pushQuad(x, y, w, h, 0.f, 0.f, 1.f, 1.f, 0, r, g, b, a);
 }
 
@@ -116,6 +162,12 @@ void Renderer2D::drawRectOutline(float x, float y, float w, float h,
 
 void Renderer2D::drawLine(float x1, float y1, float x2, float y2,
                            float r, float g, float b, float a) {
+    if (software_) {
+        if (!sdlRenderer_) return;
+        SDL_SetRenderDrawColor(sdlRenderer_, (Uint8)(r*255), (Uint8)(g*255), (Uint8)(b*255), (Uint8)(a*255));
+        SDL_RenderDrawLine(sdlRenderer_, (int)x1, (int)y1, (int)x2, (int)y2);
+        return;
+    }
     float dx = x2 - x1, dy = y2 - y1;
     float len = std::sqrt(dx*dx + dy*dy);
     if (len < 0.5f) return;
@@ -132,12 +184,23 @@ void Renderer2D::drawLine(float x1, float y1, float x2, float y2,
 
 void Renderer2D::drawTexturedQuad(float x, float y, float w, float h,
                                    GLuint texId, float r, float g, float b, float a) {
+    if (software_) return;
     if (!texId) return;
     pushQuad(x, y, w, h, 0.f, 0.f, 1.f, 1.f, texId, r, g, b, a);
 }
 
 void Renderer2D::drawCircleFilled(float cx, float cy, float rad,
                                    float r, float g, float b, float a) {
+    if (software_) {
+        if (!sdlRenderer_) return;
+        SDL_SetRenderDrawColor(sdlRenderer_, (Uint8)(r*255), (Uint8)(g*255), (Uint8)(b*255), (Uint8)(a*255));
+        int ir = (int)rad;
+        for (int dy = -ir; dy <= ir; ++dy) {
+            int dx = (int)std::sqrt((float)(ir*ir - dy*dy));
+            SDL_RenderDrawLine(sdlRenderer_, (int)cx-dx, (int)cy+dy, (int)cx+dx, (int)cy+dy);
+        }
+        return;
+    }
     const int SEGS = 16;
     flushIfNeeded(0);
     for (int i = 0; i < SEGS; ++i) {
@@ -152,6 +215,25 @@ void Renderer2D::drawCircleFilled(float cx, float cy, float rad,
 void Renderer2D::drawText(const std::string& text, float x, float y, TTF_Font* font,
                            float r, float g, float b, float a, bool centred) {
     if (!font || text.empty()) return;
+    if (software_) {
+        if (!sdlRenderer_) return;
+        SDL_Color col = {
+            (Uint8)(r * 255), (Uint8)(g * 255),
+            (Uint8)(b * 255), (Uint8)(a * 255)
+        };
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(font, text.c_str(), col);
+        if (!surf) return;
+        SDL_Texture* tex = SDL_CreateTextureFromSurface(sdlRenderer_, surf);
+        if (tex) {
+            SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+            SDL_Rect dst{(int)x, (int)y, surf->w, surf->h};
+            if (centred) { dst.x -= dst.w / 2; dst.y -= dst.h / 2; }
+            SDL_RenderCopy(sdlRenderer_, tex, nullptr, &dst);
+            SDL_DestroyTexture(tex);
+        }
+        SDL_FreeSurface(surf);
+        return;
+    }
     SDL_Color col = {
         (Uint8)(r * 255), (Uint8)(g * 255),
         (Uint8)(b * 255), (Uint8)(a * 255)

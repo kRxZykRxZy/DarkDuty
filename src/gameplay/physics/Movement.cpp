@@ -1,10 +1,19 @@
 #include "Movement.h"
 #include "Collision.h"
 #include <cmath>
+#include <algorithm>
 
 namespace Movement {
 
 void movePlayer(Player& p, const InputManager& input, const FPSCamera& cam, float dt, const TileMap& map) {
+    constexpr float GRAVITY = 9.8f;
+    constexpr float JUMP_VELOCITY = 5.6f;
+    constexpr float MAX_FALL_SPEED = 35.f;
+    constexpr float GROUND_ACCEL = 18.f;
+    constexpr float AIR_ACCEL = 7.f;
+    constexpr float GROUND_DAMPING = 10.f;
+    constexpr float COLLISION_EPSILON = 1e-4f;
+    constexpr float GROUND_Y = 0.f;
     const InputState& s = input.state();
 
     // Camera-relative movement direction (XZ plane only)
@@ -21,23 +30,54 @@ void movePlayer(Player& p, const InputManager& input, const FPSCamera& cam, floa
     if (s.left)  move -= rgtDir;
 
     float len = move.length();
+    float desiredX = 0.f;
+    float desiredZ = 0.f;
     if (len > 0.01f) {
         move = move * (1.f / len); // normalise
-        Vec3 newPos = p.pos + move * p.speed * dt;
-
-        // Resolve X then Z separately for sliding
-        Vec3 posX = { newPos.x, p.pos.y, p.pos.z };
-        Vec3 posZ = { p.pos.x,  p.pos.y, newPos.z };
-
-        Collision::sphereVsMap(posX, p.radius, map);
-        Collision::sphereVsMap(posZ, p.radius, map);
-
-        p.pos.x = posX.x;
-        p.pos.z = posZ.z;
+        desiredX = move.x * p.speed;
+        desiredZ = move.z * p.speed;
     }
 
-    // Keep player Y at 0 (flat world)
-    p.pos.y = 0.f;
+    float accel = p.onGround ? GROUND_ACCEL : AIR_ACCEL;
+    float blend = (std::min)(1.f, accel * dt);
+    p.velX += (desiredX - p.velX) * blend;
+    p.velZ += (desiredZ - p.velZ) * blend;
+
+    if (p.onGround && len <= 0.01f) {
+        float damping = (std::max)(0.f, 1.f - GROUND_DAMPING * dt);
+        p.velX *= damping;
+        p.velZ *= damping;
+    }
+
+    Vec3 newPos = { p.pos.x + p.velX * dt, p.pos.y, p.pos.z + p.velZ * dt };
+
+    // Resolve X then Z separately for sliding
+    Vec3 posX = { newPos.x, p.pos.y, p.pos.z };
+    Vec3 posZ = { p.pos.x,  p.pos.y, newPos.z };
+
+    Collision::sphereVsMap(posX, p.radius, map);
+    Collision::sphereVsMap(posZ, p.radius, map);
+
+    if (std::fabs(posX.x - newPos.x) > COLLISION_EPSILON) {
+        p.velX = 0.f;
+    }
+    if (std::fabs(posZ.z - newPos.z) > COLLISION_EPSILON) {
+        p.velZ = 0.f;
+    }
+    p.pos.x = posX.x;
+    p.pos.z = posZ.z;
+
+    if (input.keyPressed(SDLK_SPACE) && p.onGround) {
+        p.velY = JUMP_VELOCITY;
+        p.onGround = false;
+    }
+    p.velY = (std::max)(p.velY - GRAVITY * dt, -MAX_FALL_SPEED);
+    p.pos.y += p.velY * dt;
+    if (p.pos.y <= GROUND_Y) {
+        p.pos.y = GROUND_Y;
+        p.velY = 0.f;
+        p.onGround = true;
+    }
 }
 
 void moveEnemy(Enemy& e, Vec3 target, float dt, const TileMap& map) {
